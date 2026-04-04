@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Ground Floor – Elevator Project</title>
+<style>
+  @font-face {
+    font-family: 'FaireScript';
+    src: url('FAIRE-PrintScriptSlab-Trial-Black.otf') format('opentype');
+    font-weight: 900;
+  }
+  @font-face {
+    font-family: 'FaireSans';
+    src: url('FAIRE-PrintSansText-Trial-Black.otf') format('opentype');
+    font-weight: 900;
+  }
+  @font-face {
+    font-family: 'FaireSans';
+    src: url('FAIRE-PrintSansText-Trial-Bold.otf') format('opentype');
+    font-weight: 700;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background-color: #080808;
+    position: relative;
+    font-family: 'FaireSans', sans-serif;
+    font-weight: 700;
+    color: #f0ebe2;
+  }
+
+  /* subtle grain */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  .block {
+    position: absolute;
+    opacity: 0;
+    transition: opacity 2.4s ease-in-out;
+    line-height: 1.25;
+  }
+  .block.show { opacity: 1; }
+
+  /* Script initial cap */
+  .init {
+    font-family: 'FaireScript', serif;
+    font-weight: 900;
+    font-size: 2.6em;
+    line-height: 0.8;
+    display: inline;
+    vertical-align: middle;
+  }
+
+  /* Black bold headline */
+  .heavy {
+    font-family: 'FaireSans', sans-serif;
+    font-weight: 900;
+    font-size: 1.55em;
+    line-height: 1.1;
+    display: inline;
+  }
+
+  /* Regular body text */
+  .body-sm {
+    font-family: 'FaireSans', sans-serif;
+    font-weight: 700;
+    font-size: 0.8em;
+    line-height: 1.5;
+    display: block;
+    text-align: center;
+  }
+
+  /* ── LEFT COLUMN ── */
+  #b1  { left: 7%;  top: 4%;  text-align: center; width: 205px; }
+  #b2  { left: 7%;  top: 24%; text-align: center; width: 205px; }
+  #b3  { left: 8%;  top: 39%; text-align: center; width: 185px; font-size: 0.87em; }
+  #b4  { left: 7%;  top: 48%; text-align: center; width: 205px; font-size: 0.87em; font-weight: 900; font-family: 'FaireSans'; }
+  #b5  { left: 7%;  top: 56%; text-align: center; width: 205px; font-size: 0.84em; }
+  #b6  { left: 5%;  top: 62%; text-align: center; width: 220px; }
+  #b7  { left: 7%;  top: 78%; width: 225px; font-size: 0.87em; }
+  #b8  { left: 8%;  top: 84%; text-align: center; width: 205px; font-size: 0.84em; }
+  #b9  { left: 7%;  top: 90%; text-align: center; width: 215px; }
+
+  /* ── CENTER COLUMN ── */
+  #b10 { left: 50%; top: 21%; transform: translateX(-50%); text-align: center; white-space: nowrap; }
+  #b11 { left: 50%; top: 55%; transform: translateX(-50%); text-align: center; white-space: nowrap; }
+  #b12 { left: 50%; top: 78%; transform: translateX(-50%); text-align: center; }
+
+  /* ── RIGHT COLUMN ── */
+  #b13 { right: 5%; top: 17%; text-align: center; width: 205px; font-size: 0.84em; line-height: 1.7; }
+  #b14 { right: 9%; top: 29%; text-align: center; font-size: 0.87em; font-weight: 900; font-family: 'FaireSans'; }
+  #b15 { right: 3%; top: 34%; text-align: center; width: 235px; font-size: 0.87em; font-weight: 900; font-family: 'FaireSans'; }
+  #b16 { right: 4%; top: 41%; text-align: center; width: 225px; font-size: 0.84em; font-weight: 900; font-family: 'FaireSans'; }
+  #b17 { right: 7%; top: 50%; text-align: center; width: 165px; }
+  #b18 { right: 5%; top: 63%; text-align: center; width: 205px; font-size: 0.84em; line-height: 1.6; }
+  #b19 { right: 3%; top: 72%; text-align: center; width: 245px; }
+  #b20 { right: 7%; top: 83%; text-align: center; width: 185px; font-size: 0.84em; }
+  #b21 { right: 3%; top: 89%; text-align: center; width: 265px; }
+
+  /* Ready trigger */
+  #ptrig {
+    cursor: pointer;
+    transition: opacity 0.4s ease;
+    display: inline;
+  }
+  #ptrig:hover { opacity: 0.4; }
+
+  /* Enter overlay */
+  #click-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 20;
+    cursor: pointer;
+    color: #444;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    font-family: 'FaireSans', sans-serif;
+  }
+</style>
+</head>
+<body>
+
+<div id="click-overlay">Enter</div>
+
+<!-- LEFT COLUMN -->
+<div class="block" id="b1">
+  <span class="init">T</span><span class="heavy">he elevator</span>
+  <span class="body-sm">holds the smell,<br>of cold,<br>sour metal,<br>and of used air.</span>
+</div>
+
+<div class="block" id="b2">
+  <span class="init">D</span><span class="heavy">oors drag,</span>
+  <span class="body-sm">slowly, hesitate—<br>then close.</span>
+</div>
+
+<div class="block" id="b3">
+  It's too close<br>to choose otherwise.
+</div>
+
+<div class="block" id="b4">
+  A thin line of air<br>moves between the panels.
+</div>
+
+<div class="block" id="b5">
+  I pull my jacket in.<br>A small, practiced gesture.
+</div>
+
+<div class="block" id="b6">
+  <span class="init">W</span><span class="heavy">e look away.</span>
+  <span class="body-sm">At numbers.<br>At surfaces.<br>At anything<br>that refuses to</span>
+  <span class="heavy" style="display:block;text-align:center;font-size:1.7em;">look back.</span>
+</div>
+
+<div class="block" id="b7">
+  A sleeve brushes my hand.
+</div>
+
+<div class="block" id="b8">
+  Not enough to react.<br>Too much to ignore.
+</div>
+
+<div class="block" id="b9">
+  The moment stays there,<br><span class="heavy">unresolved.</span>
+</div>
+
+<!-- CENTER COLUMN -->
+<div class="block" id="b10">
+  <span class="init">T</span><span class="heavy" style="font-size:1.8em;">he cabin tightens</span>
+  <span class="body-sm">without moving.</span>
+</div>
+
+<div class="block" id="b11">
+  <span class="init">M</span><span class="heavy" style="font-size:1.8em;">etal arguing with gravity.</span>
+</div>
+
+<div class="block" id="b12">
+  <span style="font-size:0.88em; font-family:'FaireSans'; font-weight:700;">Then—</span><br>
+  <span class="init" style="font-size:1.5em;">a</span><span class="heavy" style="font-size:1.5em;"> shift.</span>
+</div>
+
+<!-- RIGHT COLUMN -->
+<div class="block" id="b13">
+  Not ambition.<br>Just mechanics.
+</div>
+
+<div class="block" id="b14">
+  We rise.
+</div>
+
+<div class="block" id="b15">
+  Our breathing enters the space.
+</div>
+
+<div class="block" id="b16">
+  There is no distance left,<br>for it to disappear into.
+</div>
+
+<div class="block" id="b17">
+  <span class="init">W</span><span class="heavy">e wait.</span>
+  <span class="body-sm">Not together.<br>Just at the same time.</span>
+</div>
+
+<div class="block" id="b18">
+  A sound cuts through—<br>clean, misplaced.
+</div>
+
+<div class="block" id="b19">
+  <span class="heavy" style="font-size:1.35em;">The doors separate.</span>
+</div>
+
+<div class="block" id="b20">
+  We step out<br>almost in sync,<br>but not quite.
+</div>
+
+<div class="block" id="b21">
+  The space closes behind us.<br>
+  <span class="init" style="font-size:1.9em;">R</span><span id="ptrig"><span class="heavy" style="font-size:1.35em;">eady for the next.</span></span>
+</div>
+
+<script>
+  // ── SOUND via AudioContext ──
+  let audioCtx = null;
+  let audioBuffer = null;
+  let gainNode = null;
+
+  async function loadSound() {
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const response = await fetch('ELEVATOR_SOUND_EFFECT_HD__NO_COPYRIGHT_.mp3');
+      const arrayBuffer = await response.arrayBuffer();
+      audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+    } catch(e) {
+      audioCtx = null;
+    }
+  }
+
+  function playSound() {
+    if (audioCtx && audioBuffer) {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      gainNode = audioCtx.createGain();
+      gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.13, audioCtx.currentTime + 2.5);
+      gainNode.connect(audioCtx.destination);
+      const source = audioCtx.createBufferSource();
+      source.buffer = audioBuffer;
+      source.loop = true;
+      source.connect(gainNode);
+      source.start(0);
+    } else {
+      const audio = new Audio('ELEVATOR_SOUND_EFFECT_HD__NO_COPYRIGHT_.mp3');
+      audio.loop = true;
+      audio.volume = 0.13;
+      audio.play().catch(() => {});
+    }
+  }
+
+  loadSound();
+
+  // ── CHRONOLOGICAL SEQUENCE ──
+  const sequence = [
+    { id: 'b1',  t: 0     },
+    { id: 'b2',  t: 2500  },
+    { id: 'b10', t: 4500  },
+    { id: 'b3',  t: 5500  },
+    { id: 'b4',  t: 7000  },
+    { id: 'b5',  t: 8500  },
+    { id: 'b6',  t: 10000 },
+    { id: 'b11', t: 12000 },
+    { id: 'b13', t: 13000 },
+    { id: 'b14', t: 14000 },
+    { id: 'b15', t: 15000 },
+    { id: 'b7',  t: 16000 },
+    { id: 'b16', t: 17000 },
+    { id: 'b17', t: 18500 },
+    { id: 'b8',  t: 19500 },
+    { id: 'b18', t: 20500 },
+    { id: 'b9',  t: 21500 },
+    { id: 'b19', t: 22500 },
+    { id: 'b20', t: 23500 },
+    { id: 'b12', t: 25000 },
+    { id: 'b21', t: 27000 },
+  ];
+
+  const overlay = document.getElementById('click-overlay');
+
+  overlay.addEventListener('click', () => {
+    overlay.style.display = 'none';
+    playSound();
+    sequence.forEach(({ id, t }) => {
+      setTimeout(() => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('show');
+      }, t);
+    });
+  });
+
+  // ── Ready → next floor ──
+  document.getElementById('ptrig').addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (gainNode && audioCtx) {
+      gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 1.2);
+    }
+    document.body.style.transition = 'opacity 1.2s ease';
+    document.body.style.opacity = '0';
+    setTimeout(() => {
+      // window.location.href = 'floor1.html';
+      alert("Signal sent. Next floor ready.");
+      document.body.style.opacity = '1';
+    }, 1200);
+  });
+</script>
+
+</body>
+</html>

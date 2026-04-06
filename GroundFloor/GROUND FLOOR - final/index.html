@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Elevator</title>
+  <style>
+    @font-face {
+      font-family: 'EaseDisplay';
+      src: url('EaseDisplayTRIAL-Black.ttf') format('truetype');
+      font-weight: 900;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { background: #000; width: 100%; height: 100%; overflow: hidden; }
+
+    #bg {
+      position: fixed;
+      top: 50%; left: 50%;
+      width: 150vmax; height: 150vmax;
+      background: url('fahrstuhl_struktur.png') center / cover no-repeat;
+      pointer-events: none;
+      z-index: 0;
+      animation: spin 200s infinite, breathe 9s ease-in-out infinite;
+    }
+    @keyframes spin {
+      0%   { transform: translate(-50%,-50%) rotate(0deg);   animation-timing-function: ease-in-out; }
+      10%  { transform: translate(-50%,-50%) rotate(35deg);  animation-timing-function: steps(1); }
+      11%  { transform: translate(-50%,-50%) rotate(38deg);  animation-timing-function: ease-out; }
+      25%  { transform: translate(-50%,-50%) rotate(80deg);  animation-timing-function: ease-in; }
+      40%  { transform: translate(-50%,-50%) rotate(70deg);  animation-timing-function: cubic-bezier(.8,0,.2,1); }
+      50%  { transform: translate(-50%,-50%) rotate(160deg); animation-timing-function: steps(1); }
+      51%  { transform: translate(-50%,-50%) rotate(163deg); animation-timing-function: ease-in-out; }
+      65%  { transform: translate(-50%,-50%) rotate(230deg); animation-timing-function: ease-in-out; }
+      75%  { transform: translate(-50%,-50%) rotate(215deg); animation-timing-function: cubic-bezier(.9,0,.1,1); }
+      88%  { transform: translate(-50%,-50%) rotate(340deg); animation-timing-function: steps(1); }
+      89%  { transform: translate(-50%,-50%) rotate(344deg); animation-timing-function: ease-in; }
+      100% { transform: translate(-50%,-50%) rotate(360deg); }
+    }
+    @keyframes breathe {
+      0%   { opacity: 0.12; }
+      40%  { opacity: 0.20; }
+      70%  { opacity: 0.10; }
+      100% { opacity: 0.12; }
+    }
+
+    /* Fahrstuhl-Ruckeln auf dem ganzen Stage */
+    #stage {
+      animation: jolt 18s ease-in-out infinite;
+    }
+    @keyframes jolt {
+      0%   { transform: none; }
+      14%  { transform: none; }
+      14.3%{ transform: translateY(-4px); }
+      14.6%{ transform: translateY(3px); }
+      15%  { transform: none; }
+      47%  { transform: none; }
+      47.2%{ transform: translateY(-3px) translateX(1px); }
+      47.5%{ transform: translateY(2px); }
+      47.8%{ transform: none; }
+      81%  { transform: none; }
+      81.2%{ transform: translateY(-5px); }
+      81.5%{ transform: translateY(3px); }
+      81.8%{ transform: translateY(-1px); }
+      82%  { transform: none; }
+      100% { transform: none; }
+    }
+
+    #stage {
+      position: relative; z-index: 1;
+      width: 100vw; height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      padding: 2rem 3rem;
+      animation: jolt 18s ease-in-out infinite;
+    }
+
+    #block {
+      width: min(88vw, 920px);
+      opacity: 0;
+      transition: opacity 0.6s ease;
+    }
+    #block.visible { opacity: 1; }
+
+    .row {
+      display: block;
+      width: 100%;
+      line-height: 0.92;
+      font-family: 'EaseDisplay', sans-serif;
+      font-weight: 900;
+      color: #fff;
+      white-space: nowrap;
+    }
+
+    #wla-line {
+      font-family: 'EaseDisplay', sans-serif;
+      font-weight: 900;
+      color: #fff;
+      white-space: nowrap;
+      text-align: center;
+      opacity: 0;
+      transition: opacity 0.6s ease;
+      margin-top: 0.6em;
+      display: none;
+    }
+    #wla-line.visible { opacity: 1; }
+
+    #start-screen {
+      position: fixed; inset: 0;
+      background: #000;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; z-index: 10;
+      transition: opacity 1.2s ease;
+    }
+    #start-screen.hidden { opacity: 0; pointer-events: none; }
+    #start-hint {
+      font-family: 'EaseDisplay', sans-serif;
+      font-size: 12px;
+      color: rgba(255,255,255,0.25);
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+  <div id="bg"></div>
+  <div id="start-screen"><p id="start-hint">click to begin</p></div>
+  <div id="stage">
+    <div id="block"></div>
+    <div id="wla-line"></div>
+  </div>
+
+  <audio id="audio" preload="auto">
+    <source src="audio.m4a" type="audio/mp4" />
+    <source src="audio.m4a" type="audio/x-m4a" />
+  </audio>
+
+  <script>
+    // Strip all punctuation from display text
+    function strip(t) {
+      return t.replace(/[.,;:!?…\-–—"'«»()]/g, '').trim();
+    }
+
+    const lyrics = [
+      { time:2,  end:3,  final:false, wlaOnly:false, lines:["THE ELEVATOR"], wla:null },
+      { time:11, end:16, final:false, wlaOnly:false,
+        lines:["THE ELEVATOR","HOLDS THE","SMELL","OF COLD","SOUR","METAL","AND USED"], wla:null },
+      { time:16, end:19, final:false, wlaOnly:false,
+        lines:["AIR","DOORS DRAG","SLOWLY","HESITATE"], wla:null },
+      { time:19, end:22, final:false, wlaOnly:false,
+        lines:["THEN CLOSE","TO CLOSE TO","CHOOSE","OTHERWISE"], wla:null },
+      { time:23, end:26, final:false, wlaOnly:false,
+        lines:["A THIN LINE OF","AIR MOVES","BETWEEN","THE PANELS"], wla:null },
+      { time:27, end:31, final:false, wlaOnly:false,
+        lines:["I PULL MY","JACKET IN","A SMALL","PRACTICED","GESTURE"], wla:null },
+      { time:33, end:37, final:false, wlaOnly:false,
+        lines:["AT NUMBERS","AT SURFACES"], wla:"WE LOOK AWAY" },
+      { time:37, end:42, final:false, wlaOnly:false,
+        lines:["THE ONLY","THING","THAT REFUSES","TO","LOOK BACK"], wla:"WE LOOK AWAY" },
+      { time:48, end:51, final:false, wlaOnly:false,
+        lines:["A SLEEVE","BRUSHES","MY HAND"], wla:null },
+      { time:51, end:55, final:false, wlaOnly:false,
+        lines:["NOT ENOUGH","TO REACT","NOT TOO MUCH","TO IGNORE"], wla:null },
+      { time:55, end:58, final:false, wlaOnly:false,
+        lines:["THE MOMENT","STAYS THERE","UNRESOLVED"], wla:null },
+      { time:58, end:62, final:false, wlaOnly:false,
+        lines:["THEN A SHIFT","THE CABIN","TIGHTENS"], wla:null },
+      { time:68, end:70, final:true, wlaOnly:true,
+        lines:[], wla:"WE LOOK AWAY" }
+    ];
+
+    const audio   = document.getElementById('audio');
+    const block   = document.getElementById('block');
+    const wlaEl   = document.getElementById('wla-line');
+    const startSc = document.getElementById('start-screen');
+    const hint    = document.getElementById('start-hint');
+    let started=false, currentIndex=-1, fadeOutStarted=false;
+
+    function measureText(text, fontStr) {
+      const c = document.createElement('canvas');
+      const ctx = c.getContext('2d');
+      ctx.font = fontStr;
+      return ctx.measureText(text).width;
+    }
+
+    function buildBlock(lyric) {
+      const blockW = block.offsetWidth || window.innerWidth * 0.88;
+      const vh = window.innerHeight;
+
+      block.innerHTML = '';
+      wlaEl.style.display = 'none';
+      wlaEl.classList.remove('visible');
+
+      function renderRows(px) {
+        block.innerHTML = '';
+        lyric.lines.forEach(l => {
+          const txt = strip(l);
+          const fontStr = `900 ${px}px EaseDisplay, sans-serif`;
+          const naturalW = measureText(txt, fontStr);
+          const extra = blockW - naturalW;
+          const chars = txt.length - 1;
+          const ls = chars > 0 ? extra / chars : 0;
+
+          const row = document.createElement('div');
+          row.className = 'row';
+          row.style.fontSize = px + 'px';
+          row.style.letterSpacing = Math.max(ls, 0) + 'px';
+          row.textContent = txt;
+          block.appendChild(row);
+        });
+      }
+
+      // For wlaOnly (final screen), skip block
+      if (!lyric.wlaOnly) {
+        let basePx = Math.min(blockW * 0.16, vh * 0.13, 96);
+        renderRows(basePx);
+        while (block.scrollHeight > vh * 0.65 && basePx > 10) {
+          basePx--;
+          renderRows(basePx);
+        }
+      }
+
+      // WLA line
+      if (lyric.wla) {
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        wlaEl.style.display = 'block';
+        // Start very big — as wide as 95vw allows
+        let wlaPx = lyric.wlaOnly
+          ? Math.min(vw * 0.22, vh * 0.22, 200)
+          : Math.min(vw * 0.18, vh * 0.18, 160);
+
+        wlaEl.style.fontSize = wlaPx + 'px';
+        wlaEl.textContent = lyric.wla;
+        wlaEl.style.width = (vw * 0.95) + 'px';
+
+        // Only shrink if it truly overflows
+        while (wlaEl.scrollWidth > vw * 0.95 && wlaPx > 30) {
+          wlaPx--;
+          wlaEl.style.fontSize = wlaPx + 'px';
+        }
+
+        setTimeout(() => wlaEl.classList.add('visible'), 320);
+      }
+
+      block.classList.add('visible');
+    }
+
+    function showLine(lyric) {
+      block.classList.remove('visible');
+      wlaEl.classList.remove('visible');
+      setTimeout(() => buildBlock(lyric), 300);
+    }
+
+    function hideLine() {
+      block.classList.remove('visible');
+      wlaEl.classList.remove('visible');
+    }
+
+    function fadeOutAudio() {
+      if (fadeOutStarted) return;
+      fadeOutStarted = true;
+      const steps=60, iv=3000/steps, startV=audio.volume;
+      let s=0;
+      const t = setInterval(()=>{
+        s++; audio.volume = Math.max(0, startV*(1-s/steps));
+        if(s>=steps){ clearInterval(t); audio.pause(); hideLine(); }
+      }, iv);
+    }
+
+    function tick() {
+      const t = audio.currentTime;
+      let idx=-1;
+      for(let i=0;i<lyrics.length;i++){
+        if(t>=lyrics[i].time && t<lyrics[i].end){ idx=i; break; }
+      }
+      if(idx!==currentIndex){
+        currentIndex=idx;
+        if(idx===-1) hideLine();
+        else {
+          showLine(lyrics[idx]);
+          if(lyrics[idx].final) setTimeout(fadeOutAudio,(lyrics[idx].end-lyrics[idx].time)*1000);
+        }
+      }
+      if(!fadeOutStarted) requestAnimationFrame(tick);
+    }
+
+    async function begin() {
+      if(started) return;
+      started=true;
+      startSc.classList.add('hidden');
+      try {
+        await audio.play();
+        requestAnimationFrame(tick);
+      } catch(err) {
+        hint.textContent='fehler: '+err.message;
+        startSc.classList.remove('hidden');
+        started=false;
+      }
+    }
+
+    startSc.addEventListener('click', begin);
+    document.addEventListener('keydown', e=>{ if(e.code==='Space') begin(); });
+  </script>
+</body>
+</html>
